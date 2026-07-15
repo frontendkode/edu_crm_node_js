@@ -61,7 +61,7 @@ async function startServer() {
     console.log('✅ Database connection established successfully.');
 
     // Sync models (alter: true adds missing columns without dropping data)
-    await sequelize.sync({ alter: true });
+    // await sequelize.sync({ alter: true });
     console.log('✅ Database models synchronized.');
 
     // Start listening
