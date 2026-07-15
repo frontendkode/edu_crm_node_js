@@ -13,6 +13,12 @@ const sequelize = new Sequelize(dbName, dbUser, dbPassword, {
   host: dbHost,
   port: dbPort,
   dialect: 'mysql',
+  dialectOptions: {
+    ssl: {
+      minVersion: 'TLSv1.2',
+      rejectUnauthorized: true,
+    },
+  },
   logging: process.env.NODE_ENV === 'development' ? console.log : false,
   pool: {
     max: 10,
