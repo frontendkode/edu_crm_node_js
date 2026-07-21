@@ -8,6 +8,7 @@ import { logAuditEvent } from './auditService';
 import { CreateUserInput, UpdateUserInput } from '../validators/userValidator';
 
 const PASSWORD_SALT_ROUNDS = 10;
+const DEFAULT_USER_ALLOWED_ROUTES = ['/dashboard', '/lead', '/students', '/staff-task', '/fees', '/students-attendance'];
 
 export const getUsers = async (options: Parameters<typeof findAllUsers>[0]) => {
   const normalizedOptions = {
@@ -63,7 +64,7 @@ export const createNewUser = async (input: CreateUserInput, actorId?: string) =>
       }
 
       if (Array.isArray((input as any).allowedRoutes)) {
-        userPayload.allowed_routes = (input as any).allowedRoutes;
+        userPayload.allowed_routes = (input as any).allowedRoutes.length > 0 ? (input as any).allowedRoutes : DEFAULT_USER_ALLOWED_ROUTES;
       }
 
       const user = await createUser(userPayload, transaction);
@@ -114,8 +115,8 @@ export const updateExistingUser = async (id: string, input: UpdateUserInput, act
     updates.username = input.username.trim();
   }
 
-  if (input.role) {
-    updates.role = input.role;
+  if (typeof input.role === 'string' && input.role.trim().length > 0) {
+    updates.role = input.role.trim().toUpperCase();
   }
 
   // Support both legacy isActive and new enabled property
@@ -131,7 +132,7 @@ export const updateExistingUser = async (id: string, input: UpdateUserInput, act
   }
 
   if (Array.isArray((input as any).allowedRoutes)) {
-    updates.allowed_routes = (input as any).allowedRoutes;
+    updates.allowed_routes = (input as any).allowedRoutes.length > 0 ? (input as any).allowedRoutes : DEFAULT_USER_ALLOWED_ROUTES;
   }
 
   const [count, updated] = await updateUser(id, updates);

@@ -12,6 +12,7 @@ const PASSWORD_SALT_ROUNDS = 10;
 const MAX_FAILED_LOGIN_ATTEMPTS = 5;
 const LOCK_DURATION_MINUTES = 15;
 const REFRESH_TOKEN_EXPIRY_HOURS = 24 * 30; // 30 days
+const DEFAULT_USER_ALLOWED_ROUTES = ['/dashboard', '/lead', '/students', '/staff-task', '/fees', '/students-attendance'];
 
 const getTokenExpiry = (): Date => {
   const expiry = new Date();
@@ -64,12 +65,21 @@ export const login = async (input: LoginInput): Promise<JwtResponse> => {
     throw new AppError('Account disabled.', 403);
   }
 
+  const savedAllowedRoutes = Array.isArray((user as any).allowed_routes)
+    ? (user as any).allowed_routes
+    : Array.isArray((user as any).allowedRoutes)
+    ? (user as any).allowedRoutes
+    : [];
+  const normalizedAllowedRoutes = savedAllowedRoutes.length > 0 ? savedAllowedRoutes : DEFAULT_USER_ALLOWED_ROUTES;
+
+  const normalizedRole = (user.role ?? 'USER').toString().trim().toUpperCase();
+
   const token = signAccessToken({
     id: user.id,
     username: user.username ?? '',
-    role: user.role ?? 'USER',
+    role: normalizedRole,
     enabled: typeof (user as any).enabled !== 'undefined' ? (user as any).enabled : true,
-    allowedRoutes: (user as any).allowed_routes ?? (user as any).allowedRoutes ?? null,
+    allowedRoutes: normalizedAllowedRoutes,
   });
 
   const refreshToken = randomUUID();
@@ -94,9 +104,9 @@ export const login = async (input: LoginInput): Promise<JwtResponse> => {
   return {
     id: user.id,
     username: user.username ?? '',
-    role: user.role ?? 'USER',
+    role: normalizedRole,
     enabled: typeof (user as any).enabled !== 'undefined' ? (user as any).enabled : true,
-    allowedRoutes: (user as any).allowed_routes ?? (user as any).allowedRoutes ?? [],
+    allowedRoutes: normalizedAllowedRoutes,
     token,
     refreshToken,
   };

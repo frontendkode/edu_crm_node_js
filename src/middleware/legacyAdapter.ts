@@ -149,7 +149,7 @@ export const setupLegacyRoutes = (app: Application): void => {
   app.post(
     '/kiss-tech/api-staff/getAllStaffNameAndId',
     authenticateToken,
-    authorizeModule('/staff'),
+    // authorizeModule('/staff'),
     staffController.getAllNamesAndIds
   );
   app.post(
