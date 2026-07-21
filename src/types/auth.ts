@@ -12,6 +12,7 @@ export interface JwtResponse {
   role: string;
   token: string;
   refreshToken?: string;
+  staffId?: string;
   enabled?: boolean;
   allowedRoutes?: string[];
 }

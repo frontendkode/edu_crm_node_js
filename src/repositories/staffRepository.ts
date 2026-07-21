@@ -24,6 +24,10 @@ export const findStaffById = async (id: string): Promise<Staff | null> => {
   });
 };
 
+export const findStaffByUserId = async (userId: string): Promise<Staff | null> => {
+  return Staff.findOne({ where: { user_id: userId } });
+};
+
 export const findAllStaff = async (options: StaffQueryOptions) => {
   const where: any = {};
 

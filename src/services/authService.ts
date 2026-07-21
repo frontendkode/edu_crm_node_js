@@ -5,6 +5,7 @@ import { AppError } from '../utils/appError';
 import { createSession, findSessionByUserId, updateSessionByUserId } from '../repositories/sessionRepository';
 import { findByUsername, updateUser } from '../repositories/userRepository';
 import { createNewUser } from './userService';
+import { findStaffByUserId } from '../repositories/staffRepository';
 import { LoginInput, RegisterInput } from '../validators/authValidator';
 import { JwtResponse } from '../types/auth';
 
@@ -86,7 +87,7 @@ export const login = async (input: LoginInput): Promise<JwtResponse> => {
   const expiration_time = getTokenExpiry();
 
   const existingSession = await findSessionByUserId(user.id);
-
+  
   if (existingSession) {
     await updateSessionByUserId(user.id, {
       token: refreshToken,
@@ -101,6 +102,8 @@ export const login = async (input: LoginInput): Promise<JwtResponse> => {
     });
   }
 
+  const staff = await findStaffByUserId(user.id);
+
   return {
     id: user.id,
     username: user.username ?? '',
@@ -109,6 +112,7 @@ export const login = async (input: LoginInput): Promise<JwtResponse> => {
     allowedRoutes: normalizedAllowedRoutes,
     token,
     refreshToken,
+    staffId: staff?.id,
   };
 };
 
