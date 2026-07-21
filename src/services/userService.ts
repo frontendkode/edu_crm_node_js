@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import sequelize from '../config/database';
 import { AppError } from '../utils/appError';
 import { createUser, deleteUser, findById, findByUsername, findAllUsers, updateUser } from '../repositories/userRepository';
-import { findStaffById, updateStaff } from '../repositories/staffRepository';
+import { findStaffById, findStaffByUserId, updateStaff } from '../repositories/staffRepository';
 import { logAuditEvent } from './auditService';
 import { CreateUserInput, UpdateUserInput } from '../validators/userValidator';
 
@@ -138,6 +138,22 @@ export const updateExistingUser = async (id: string, input: UpdateUserInput, act
   const [count, updated] = await updateUser(id, updates);
   if (count === 0) {
     throw new AppError('Failed to update user.', 500);
+  }
+
+  if (typeof input.staffId === 'string') {
+    const normalizedStaffId = input.staffId.trim();
+    const existingStaffForUser = await findStaffByUserId(id);
+
+    if (existingStaffForUser && normalizedStaffId !== existingStaffForUser.id) {
+      await updateStaff(existingStaffForUser.id, { user_id: null });
+    }
+
+    if (normalizedStaffId) {      const staff = await findStaffById(normalizedStaffId);
+      if (!staff) {
+        throw new AppError('Associated staff member not found.', 404);
+      }
+      await updateStaff(normalizedStaffId, { user_id: id });
+    }
   }
 
   await logAuditEvent({

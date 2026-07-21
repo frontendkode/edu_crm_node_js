@@ -19,6 +19,7 @@ export const updateUserSchema = z.object({
   username: z.string().min(3).optional(),
   password: z.string().min(6).optional(),
   role: z.string().min(1).optional(),
+  staffId: z.string().optional(),
   isActive: z.boolean().optional(),
   enabled: z.boolean().optional(),
   allowedRoutes: z.array(z.string()).optional(),
