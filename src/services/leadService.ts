@@ -11,30 +11,30 @@ import {
   findAllLeads,
   updateLead,
 } from '../repositories/leadRepository';
-import { ActivityLogInput, CreateLeadInput, ReminderInput } from '../validators/leadValidator';
+import { ActivityLogInput, CreateLeadInput, ReminderInput, UpdateLeadInput } from '../validators/leadValidator';
 
 const toCamelCaseLead = (lead: any) => {
   const activityLog = Array.isArray(lead.activityLog)
     ? lead.activityLog.map((activity: any) => ({
-        id: activity.id,
-        type: activity.type,
-        description: activity.description,
-        logResult: activity.log_result,
-        leadId: activity.lead_id,
-        createdAt: activity.created_at,
-      }))
+      id: activity.id,
+      type: activity.type,
+      description: activity.description,
+      logResult: activity.log_result,
+      leadId: activity.lead_id,
+      createdAt: activity.created_at,
+    }))
     : [];
 
   const reminderLog = Array.isArray(lead.reminderLog)
     ? lead.reminderLog.map((reminder: any) => ({
-        id: reminder.id,
-        type: reminder.type,
-        description: reminder.description,
-        reminderDate: reminder.reminder_date,
-        reminderTime: reminder.reminder_time,
-        leadId: reminder.lead_id,
-        createdAt: reminder.created_at,
-      }))
+      id: reminder.id,
+      type: reminder.type,
+      description: reminder.description,
+      reminderDate: reminder.reminder_date,
+      reminderTime: reminder.reminder_time,
+      leadId: reminder.lead_id,
+      createdAt: reminder.created_at,
+    }))
     : [];
 
   return {
@@ -268,4 +268,58 @@ export const addReminderToLead = async (
     leadId: reminderLog.lead_id,
     createdAt: reminderLog.created_at,
   };
+};
+
+export const updateLeadDetails = async (
+  id: string,
+  input: UpdateLeadInput,
+  actorId?: string
+) => {
+  const lead = await findLeadById(id);
+  if (!lead) {
+    throw new AppError('Lead not found.', 404);
+  }
+
+  // If email is being changed, make sure it's not taken by another lead
+  if (input.email) {
+    const normalizedEmail = input.email.trim().toLowerCase();
+    const existingLead = await findLeadByEmail(normalizedEmail);
+    if (existingLead && existingLead.id !== id) {
+      throw new AppError('A lead with that email already exists.', 409);
+    }
+  }
+
+  const updates: Record<string, any> = {};
+  if (input.fullName !== undefined) updates.full_name = input.fullName.trim();
+  if (input.phoneNumber !== undefined) updates.phone_number = input.phoneNumber.trim();
+  if (input.email !== undefined) updates.email = input.email.trim().toLowerCase();
+  if (input.courseInterest !== undefined) updates.course_interest = input.courseInterest.trim();
+  if (input.source !== undefined) updates.source = input.source.trim();
+  if (input.counselor !== undefined) updates.counselor = input.counselor.trim();
+  if (input.notes !== undefined) updates.notes = input.notes?.trim() ?? null;
+  if (input.stage !== undefined) updates.stage = input.stage.trim();
+
+  if (Object.keys(updates).length === 0) {
+    throw new AppError('No fields provided to update.', 400);
+  }
+
+  const [count] = await updateLead(id, updates);
+  if (count === 0) {
+    throw new AppError('Failed to update lead.', 500);
+  }
+
+  await logAuditEvent({
+    userId: actorId,
+    targetType: 'lead',
+    targetId: id,
+    action: 'update_lead',
+    details: `Updated lead ${id}: ${Object.keys(updates).join(', ')}`,
+  });
+
+  const updatedLead = await findLeadById(id);
+  if (!updatedLead) {
+    throw new AppError('Lead not found after update.', 500);
+  }
+
+  return toCamelCaseLead(updatedLead.toJSON ? updatedLead.toJSON() : updatedLead);
 };

@@ -12,6 +12,8 @@ import {
   createLeadSchema,
   reminderSchema,
 } from '../validators/leadValidator';
+import { updateLeadDetails } from '../services/leadService';
+import { updateLeadSchema } from '../validators/leadValidator';
 
 const parseQuery = (schema: z.ZodSchema<any>, source: unknown) => {
   return schema.parse(source);
@@ -75,6 +77,22 @@ export const addActivity = async (req: Request, res: Response, next: NextFunctio
     const input = activityLogSchema.parse(req.body);
     const activity = await addActivityToLead(leadId, input, req.user?.id);
     res.status(201).json({ responseObject: activity, responseMessage: 'Activity log added successfully.' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+
+export const update = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const querySchema = z.object({ id: z.string().min(1, 'Lead id is required.') });
+    const { id } = parseQuery(querySchema, req.query);
+    const input = updateLeadSchema.parse(req.body);
+
+    const lead = await updateLeadDetails(id, input, req.user?.id);
+
+    res.json({ responseObject: lead, responseMessage: 'Lead updated successfully.' });
   } catch (error) {
     next(error);
   }

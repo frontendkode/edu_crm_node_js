@@ -13,7 +13,7 @@ import * as staffController from '../controllers/staffController';
 import * as taskController from '../controllers/taskController';
 import { loginSchema, registerSchema } from '../validators/authValidator';
 import { createStaffSchema, updateStaffSchema } from '../validators/staffValidator';
-import { createLeadSchema, activityLogSchema, reminderSchema } from '../validators/leadValidator';
+import { createLeadSchema, activityLogSchema, reminderSchema, updateLeadSchema } from '../validators/leadValidator';
 import { createTaskSchema } from '../validators/taskValidator';
 import { createDropdownSchema, updateDropdownSchema } from '../validators/dropdownValidator';
 import {
@@ -102,7 +102,13 @@ export const setupLegacyRoutes = (app: Application): void => {
     validateRequest(activityLogSchema),
     leadController.addActivity
   );
-
+  app.post(
+    '/kiss-tech/api-lead/update',
+    authenticateToken,
+    authorizeModule('/lead'),
+    validateRequest(updateLeadSchema),
+    leadController.update
+  );
   // ──────────────────────────── Students ────────────────────────
   app.post(
     '/kiss-tech/api-student/getAllStudents',

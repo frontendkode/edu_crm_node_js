@@ -51,6 +51,23 @@ export const createLeadSchema = z.object({
   reminderLog: z.array(reminderSchema).optional(),
 });
 
+/**
+ * Schema for updating an existing lead. All fields optional (partial update),
+ * but each field, if present, must still satisfy its original constraints.
+ */
+export const updateLeadSchema = z.object({
+  fullName: z.string().min(1, 'Full name must not be empty.').optional(),
+  phoneNumber: z.string().min(1, 'Phone number must not be empty.').optional(),
+  email: z.string().email('Must be a valid email address.').optional(),
+  courseInterest: z.string().min(1, 'Course interest must not be empty.').optional(),
+  source: z.string().min(1, 'Source must not be empty.').optional(),
+  counselor: z.string().min(1, 'Counselor must not be empty.').optional(),
+  notes: z.string().optional(),
+  stage: z.string().optional(),
+});
+
+export type UpdateLeadInput = z.infer<typeof updateLeadSchema>;
+
 /** Inferred TypeScript types */
 export type CreateLeadInput = z.infer<typeof createLeadSchema>;
 export type ActivityLogInput = z.infer<typeof activityLogSchema>;
