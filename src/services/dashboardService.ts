@@ -8,6 +8,13 @@ import {
   findAttendanceStudents,
   findDueDayStudents,
 } from '../repositories/dashboardRepository';
+
+import {
+  findTodayPendingTasks,
+  findTodayTomorrowReminderLeads,
+  findTodayAttendanceStudents,
+  findPendingDueStudents,
+} from '../repositories/dashboardRepository';
 import Attendance from '../models/Attendance';
 import DueDate from '../models/DueDate';
 import ReminderLog from '../models/ReminderLog';
@@ -81,22 +88,22 @@ export const getDashboardData = async () => {
     balanceFee: student.balance_fee,
     dueDay: Array.isArray(student.dueDay)
       ? student.dueDay.map((due) => ({
-          id: due.id,
-          dueNo: due.due_no,
-          dueAmt: due.due_amt,
-          dueDate: due.due_date,
-          paymentType: due.payment_type,
-          paymentDateAndTime: due.payment_date,
-          status: due.status,
-        }))
+        id: due.id,
+        dueNo: due.due_no,
+        dueAmt: due.due_amt,
+        dueDate: due.due_date,
+        paymentType: due.payment_type,
+        paymentDateAndTime: due.payment_date,
+        status: due.status,
+      }))
       : [],
     attendance: Array.isArray(student.attendance)
       ? student.attendance.map((attendance) => ({
-          id: attendance.id,
-          attend: attendance.attend,
-          date: attendance.date,
-          day: attendance.day,
-        }))
+        id: attendance.id,
+        attend: attendance.attend,
+        date: attendance.date,
+        day: attendance.day,
+      }))
       : [],
   }));
 
@@ -145,116 +152,69 @@ export const getDashboardData = async () => {
 };
 
 export const getDashboardNotifications = async () => {
-  const [tasks, leads, attendanceStudents, dueDayStudents]: [
-    Task[],
-    LeadWithReminders[],
-    StudentWithRelations[],
-    StudentWithRelations[]
+
+  const [
+    tasks,
+    leads,
+    attendanceStudents,
+    dueDayStudents,
   ] = await Promise.all([
-    findAllDashboardTasks(),
-    findReminderLeads(),
-    findAttendanceStudents(),
-    findDueDayStudents(),
+    findTodayPendingTasks(),
+    findTodayTomorrowReminderLeads(),
+    findTodayAttendanceStudents(),
+    findPendingDueStudents(),
   ]);
 
-  const today = startOfDay(new Date());
-  const upcomingWindow = endOfDay(addDays(today, 7));
+  const taskNotifications = tasks.map(task => ({
+    id: task.id,
+    taskTitle: task.task_title,
+    dueDate: task.due_date,
+    staffName: task.staff_name,
+    priority: task.priority,
+    status: task.status,
+  }));
 
-  const taskNotifications = tasks
-    .filter((task) => {
-      const dueDate = parseDateValue(task.due_date);
-      return (
-        dueDate !== null &&
-        dueDate.getTime() <= upcomingWindow.getTime() &&
-        (task.status || '').toLowerCase() !== 'completed'
-      );
-    })
-    .slice(0, 8)
-    .map((task) => ({
-      id: task.id,
-      taskTitle: task.task_title,
-      dueDate: task.due_date,
-      staffName: task.staff_name,
-      priority: task.priority,
-      status: task.status,
-    }));
 
-  const leadNotifications = leads
-    .map((lead) => ({
-      id: lead.id,
-      fullName: lead.full_name,
-      reminderLogs: Array.isArray(lead.reminderLog)
-        ? lead.reminderLog
-            .filter((reminder: ReminderLog) => {
-              const reminderDate = parseDateValue(reminder.reminder_date);
-              return (
-                reminderDate !== null &&
-                reminderDate.getTime() >= today.getTime() &&
-                reminderDate.getTime() <= upcomingWindow.getTime()
-              );
-            })
-            .map((reminder: ReminderLog) => ({
-              id: reminder.id,
-              description: reminder.description,
-              type: reminder.type,
-              reminderDate: reminder.reminder_date,
-              reminderTime: reminder.reminder_time,
-            }))
-        : [],
+  const leadNotifications = leads.map(lead => ({
+    id: lead.id,
+    fullName: lead.full_name,
+
+    reminderLogs: (lead.reminderLog ?? []).map(reminder => ({
+      id: reminder.id,
+      description: reminder.description,
+      type: reminder.type,
+      reminderDate: reminder.reminder_date,
+      reminderTime: reminder.reminder_time,
     }))
-    .filter((lead) => lead.reminderLogs.length > 0)
-    .slice(0, 6);
+  }));
 
-  const studentAttendanceNotifications = attendanceStudents
-    .map((student) => ({
-      id: student.id,
-      fullName: student.full_name,
-      attendance: Array.isArray(student.attendance)
-        ? student.attendance
-            .filter((attendance: Attendance) => {
-              const attendanceDate = parseDateValue(attendance.date);
-              return (
-                attendanceDate !== null &&
-                attendanceDate.getTime() >= today.getTime() &&
-                attendanceDate.getTime() <= upcomingWindow.getTime()
-              );
-            })
-            .map((attendance: Attendance) => ({
-              id: attendance.id,
-              date: attendance.date,
-              day: attendance.day,
-              attend: attendance.attend,
-            }))
-        : [],
-    }))
-    .filter((student) => student.attendance.length > 0)
-    .slice(0, 6);
 
-  const studentDueDayNotifications = dueDayStudents
-    .map((student) => ({
-      id: student.id,
-      fullName: student.full_name,
-      dueDays: Array.isArray(student.dueDay)
-        ? student.dueDay
-            .filter((due: DueDate) => {
-              const dueDate = parseDateValue(due.due_date);
-              return (
-                dueDate !== null &&
-                dueDate.getTime() <= upcomingWindow.getTime() &&
-                (due.status || '').toLowerCase() !== 'paid'
-              );
-            })
-            .map((due: DueDate) => ({
-              id: due.id,
-              dueNo: due.due_no,
-              dueAmt: due.due_amt,
-              dueDate: due.due_date,
-              status: due.status,
-            }))
-        : [],
+  const studentAttendanceNotifications = attendanceStudents.map(student => ({
+    id: student.id,
+    fullName: student.full_name,
+
+    attendance: (student.attendance ?? []).map(attendance => ({
+      id: attendance.id,
+      date: attendance.date,
+      day: attendance.day,
+      attend: attendance.attend,
     }))
-    .filter((student) => student.dueDays.length > 0)
-    .slice(0, 6);
+  }));
+
+
+  const studentDueDayNotifications = dueDayStudents.map(student => ({
+    id: student.id,
+    fullName: student.full_name,
+
+    dueDays: (student.dueDay ?? []).map(due => ({
+      id: due.id,
+      dueNo: due.due_no,
+      dueAmt: due.due_amt,
+      dueDate: due.due_date,
+      status: due.status,
+    }))
+  }));
+
 
   await logAuditEvent({
     userId: undefined,
