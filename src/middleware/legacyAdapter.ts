@@ -14,7 +14,7 @@ import * as taskController from '../controllers/taskController';
 import { loginSchema, registerSchema } from '../validators/authValidator';
 import { createStaffSchema, updateStaffSchema } from '../validators/staffValidator';
 import { createLeadSchema, activityLogSchema, reminderSchema, updateLeadSchema } from '../validators/leadValidator';
-import { createTaskSchema } from '../validators/taskValidator';
+import { createTaskSchema, updateTaskSchema } from '../validators/taskValidator';
 import { createDropdownSchema, updateDropdownSchema } from '../validators/dropdownValidator';
 import {
   createStudentSchema,
@@ -189,4 +189,18 @@ export const setupLegacyRoutes = (app: Application): void => {
     authorizeModule('/task'),
     taskController.updateStatus
   );
+  app.put(
+    '/kiss-tech/api-task/:id',
+    authenticateToken,
+    authorizeModule('/task'),
+    validateRequest(updateTaskSchema),
+    taskController.update
+  );
+  app.delete(
+    '/kiss-tech/api-task/:id',
+    authenticateToken,
+    authorizeModule('/task'),
+    taskController.deleteTask
+  );
 };
+
